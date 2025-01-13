@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
 import { observer } from "mobx-react-lite";
 import TaskStore from "../../stores/task.store/task.store";
-import { Button, Checkbox, TextField, Box } from "@mui/material";
+import { Button, Checkbox, TextField, Box, Tabs, Tab } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { pink } from "@mui/material/colors";
 import AddIcon from "@mui/icons-material/Add";
 
+
+const FILTERS = {
+  ALL: "all",
+  COMPLETED: "completed",
+  INCOMPLETE: "incomplete",
+} as const;
+
+type FilterType = typeof FILTERS[keyof typeof FILTERS];
+
 const TodoList = observer(() => {
   const [text, setText] = useState("");
+  const [filter, setFilter] = useState<FilterType>(FILTERS.ALL);
 
   useEffect(() => {
     TaskStore.fetchTasks();
@@ -19,6 +29,12 @@ const TodoList = observer(() => {
       setText("");
     }
   };
+
+  const filteredTasks = TaskStore.tasks.filter((task) => {
+    if (filter === FILTERS.COMPLETED) return task.done;
+    if (filter === FILTERS.INCOMPLETE) return !task.done;
+    return true;
+  });
 
   return (
     <Box sx={{ p: 2 }}>
@@ -49,17 +65,28 @@ const TodoList = observer(() => {
         </Button>
       </Box>
 
+      {/* Фильтры */}
+      <Tabs
+        value={filter}
+        onChange={(e, newValue) => setFilter(newValue)}
+        sx={{ mb: 2 }}
+        aria-label="Фильтры задач"
+      >
+        <Tab label="Все" value={FILTERS.ALL} />
+        <Tab label="Незавершенные" value={FILTERS.INCOMPLETE} />
+        <Tab label="Выполненные" value={FILTERS.COMPLETED} />
+      </Tabs>
+
       {/* Задачи */}
       <Box component="ul" sx={{ listStyle: "none", p: 0, m: 0 }}>
-        {TaskStore.tasks.map((task) => (
+          {filteredTasks.map((task) => (
           <Box
             key={task.id}
             component="li"
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 1,
-              mb: 1, 
+              mb: 1,
             }}
           >
             <Checkbox
@@ -70,10 +97,10 @@ const TodoList = observer(() => {
             />
             <Box
               sx={{
-                flexGrow: 1, 
+                flexGrow: 1,
                 textDecoration: task.done ? "line-through" : "none",
                 color: task.done ? "gray" : "black",
-                wordBreak: "break-word", 
+                wordBreak: "break-word",
                 margin: 0,
                 textAlign: 'start',
               }}
@@ -81,8 +108,10 @@ const TodoList = observer(() => {
               {task.text}
             </Box>
             <Button onClick={() => TaskStore.deleteTask(task.id)} variant="text">
-              <DeleteIcon sx={{ color: pink[500] }} />
+              <DeleteIcon sx={{ color: pink[500] }}/>
             </Button>
+
+
           </Box>
         ))}
       </Box>
